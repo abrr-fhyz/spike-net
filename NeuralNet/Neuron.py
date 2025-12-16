@@ -1,7 +1,7 @@
 import numpy as np
 
 class Neuron:
-    def __init__(self, threshold = 1.0, reset = 0.0, decay = 0.9, refractory = 2):
+    def __init__(self, threshold = 1.0, reset = 0.0, decay = 0.9, refractory = 2, leakConductance = 0.1, restPotential = 0.0):
         self.threshold = threshold
         self.reset = reset
         self.decay = decay
@@ -10,6 +10,9 @@ class Neuron:
         self.spikeTime = -1
         self.refractoryEnd = -1
 
+        self.leakConductance = leakConductance
+        self.restPotential = restPotential
+
     def setName(self, name):
         self.neuronName = name
 
@@ -17,8 +20,11 @@ class Neuron:
         if currentTime < self.refractoryEnd:
             return False
         
+        incomingCurrent = np.sum(incomingSpikes)
+        leakCurrent = self.leakConductance * (self.membranePotential - self.restPotential)
         self.membranePotential *= self.decay
-        self.membranePotential += np.sum(incomingSpikes)
+        self.membranePotential += incomingCurrent
+        self.membranePotential -= leakCurrent
 
         if self.membranePotential >= self.threshold:
             self.spikeTime = currentTime
@@ -28,6 +34,3 @@ class Neuron:
         
         return False
     
-class Synapse:
-    def __init__(self, weight):
-        self.weight = weight
