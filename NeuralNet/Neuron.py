@@ -1,7 +1,7 @@
 import numpy as np
 
 class Neuron:
-    def __init__(self, threshold = 1.0, reset = 0.0, decay = 0.9, refractory = 2, leakConductance = 0.1, restPotential = 0.0):
+    def __init__(self, threshold = 1.0, reset = 0.0, decay = 0.95, refractory = 2, leakConductance = 0.1, restPotential = 0.0):
         self.threshold = threshold
         self.reset = reset
         self.decay = decay
@@ -13,23 +13,28 @@ class Neuron:
         self.leakConductance = leakConductance
         self.restPotential = restPotential
 
+        self.spikeTrace = 0.0
+
     def setName(self, name):
         self.neuronName = name
+
+    def triggerSpike(self, time):
+        self.spikeTime = time
+        self.membranePotential = self.reset
+        self.refractoryEnd = time + self.refractory
+        self.spikeTrace += 1.0
 
     def update(self, incomingSpikes, currentTime):
         if currentTime < self.refractoryEnd:
             return False
         
-        incomingCurrent = np.sum(incomingSpikes)
+        self.membranePotential += incomingSpikes
         leakCurrent = self.leakConductance * (self.membranePotential - self.restPotential)
-        self.membranePotential *= self.decay
-        self.membranePotential += incomingCurrent
         self.membranePotential -= leakCurrent
+        self.spikeTrace *= self.decay
 
         if self.membranePotential >= self.threshold:
-            self.spikeTime = currentTime
-            self.membranePotential = self.reset
-            self.refractoryEnd = currentTime + self.refractory
+            self.triggerSpike(currentTime)
             return True
         
         return False

@@ -2,25 +2,38 @@ import numpy as np
 from NeuralNet.Neuron import Neuron
 
 class Synapse:
-    def __init__(self, weight, pre: Neuron, post: Neuron, lr = 0.01, tauPlus = 20.0, tauMinus = 20.0):
+    def __init__(self, weight, pre: Neuron, post: Neuron, lr = 0.01, aPlus = 10.0, aMinus = 10.0, maxW = 10.0, traceDecay = 0.95):
         self.weight = weight
         self.preSpike = pre
         self.postSpike = post
         self.lr = lr
-        self.tauPlus = tauPlus
-        self.tauMinus = tauMinus
+        self.aPlus = aPlus
+        self.aMinus = aMinus
+        self.maxW = maxW
+        self.traceDecay = traceDecay
+        self.trace = 0.0  
 
-    def applySTDP(self):
-        preSpikeTime = self.preSpike.spikeTime
-        postSpikeTime = self.postSpike.spikeTime
+    def applySTDP(self, currentTime):
+        preSpikeTrace = self.preSpike.spikeTrace
+        postSpikeTrace = self.postSpike.spikeTrace
 
-        if preSpikeTime > 0 and postSpikeTime > 0:
-            delta = preSpikeTime - postSpikeTime
-            if delta > 0:
-                self.weight += self.lr * np.exp(-delta / self.tauPlus)
-            else:
-                self.weight -= self.lr * np.exp(delta / self.tauMinus)
+        delta = 0.0
+        if self.preSpike.spikeTime == currentTime:
+            delta -= self.aMinus * postSpikeTrace
+            self.trace -= self.aMinus * postSpikeTrace
+        if self.postSpike.spikeTime == currentTime:
+            delta += self.aPlus * preSpikeTrace
+            self.trace += self.aPlus * preSpikeTrace
+
+        self.trace *= self.traceDecay
+        self.weight += self.lr * delta
+        self.weight = np.clip(self.weight, 0.0, self.maxW)        
+        return self.weight
         
+    def handleReward(self, reward):
+        delta = self.lr * self.trace * reward
+        self.weight += delta
+        self.weight = np.clip(self.weight, 0.0, self.maxW)
         return self.weight
     
     def getCurrent(self, spike):

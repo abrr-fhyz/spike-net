@@ -44,7 +44,7 @@ class SNN:
             nConnections = max(1, int(cols * 0.4))
             connected = np.random.choice(cols, size=nConnections, replace=False)
             for jdx in connected:
-                weights[idx, jdx] = np.random.rand() * 1.5 + 0.3
+                weights[idx, jdx] = np.random.rand() * 2.0 + 0.3
         return weights
 
     def vectorisedUpdate(self, neurons, inputSpikes, weights):
@@ -56,34 +56,48 @@ class SNN:
             outputSpikes[idx] = neuron.update(weightedInput[idx], self.currentTime)
         return outputSpikes.astype(float)
 
-    def checkPattern(self, step):
-        return all(neuron.spikeTime == step
-                   for neuron, pat in zip(self.outputNeurons, self.pattern)
-                   if pat == 1)
-
     def forward(self, inputSpikes):
         hiddenSpikes = self.vectorisedUpdate(self.hiddenNeurons, inputSpikes, self.inputToHiddenWeights)
         outputSpikes = self.vectorisedUpdate(self.outputNeurons, hiddenSpikes, self.hiddenToOutputWeights)
         return outputSpikes
 
-    def stdp(self, synapsesDict, weightMatrix):
+    def stdp(self, synapsesDict: dict[tuple[int, int], Synapse], weightMatrix):
         weightMatrix = weightMatrix.tolil()
         for (idx, jdx) in synapsesDict:
             synapse = synapsesDict[(idx, jdx)]
-            newWeight = synapse.applySTDP()
+            newWeight = synapse.applySTDP(self.currentTime)
             weightMatrix[idx, jdx] = newWeight
         return weightMatrix.tocsr() 
-        
+
+    def calculateReward(self, output, targetRate = 0.3):
+        reward = 0
+
+        firingRate = np.sum(output) / len(output)
+        reward += 1.0 - abs(firingRate - targetRate) / max(targetRate, 0.1)
+
+        avgTrace = np.mean([neuron.spikeTrace for neuron in self.outputNeurons])
+        reward += 1.0 - abs(avgTrace - targetRate)
+
+        reward /= 2
+        return reward 
+
+    def processReward(self, reward, synapsesDict: dict[tuple[int, int], Synapse], weightMatrix):
+        weightMatrix = weightMatrix.tolil()
+        for (idx, jdx) in synapsesDict:
+            synapse = synapsesDict[(idx, jdx)]
+            newWeight = synapse.handleReward(reward)
+            weightMatrix[idx, jdx] = newWeight
+        return weightMatrix.tocsr()
+    
     def train(self):
         for step in range(self.timeSteps):
             self.currentTime = step
             inputSpikes = np.random.randint(0, 2, size=self.inputSize).astype(float)
             outputSpikes = self.forward(inputSpikes)
-            print(f"TimeStep: {step}")
-            print(outputSpikes)
             self.inputToHiddenWeights = self.stdp(self.inputHiddenSynapses, self.inputToHiddenWeights)
             self.hiddenToOutputWeights = self.stdp(self.hiddenOutputSynapses, self.hiddenToOutputWeights)
-
-            if self.checkPattern(step):
-                print(f"Pattern detected at Timestep {step}.")
+            reward = self.calculateReward(outputSpikes)
+            self.inputToHiddenWeights = self.processReward(reward, self.inputHiddenSynapses, self.inputToHiddenWeights)
+            self.hiddenToOutputWeights = self.processReward(reward, self.hiddenOutputSynapses, self.hiddenToOutputWeights)
+            print(f"TimeStep: {step} | Output: {outputSpikes} | Reward: {reward:.3f}")
             
