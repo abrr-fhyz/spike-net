@@ -1,5 +1,5 @@
 # Spiking Neural Network (SNN)
-A custom-designed, vectorized Leaky Integrate-and-Fire (LIF) Spiking Neural Network architecture integrated with a Reinforcement Learning reward system. The goal is to emulate the complete nervous system of the *C. elegans* organism.
+A custom-designed, vectorized Leaky Integrate-and-Fire (LIF) Spiking Neural Network architecture integrated with a Reinforcement Learning reward system. The goal is to implement the complete nervous system of the *C. elegans* organism.
 
 ## Features
 - **LIF SNN** with custom `Neuron` and `Synapse` classes.
