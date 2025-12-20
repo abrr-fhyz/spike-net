@@ -122,10 +122,10 @@ class SNN:
             weights[idx, jdx] = weight
         return weights
         
-    def train(self):
+    def train(self, spikeTrain):
         for step in range(self.timeSteps):
             self.currentTime = step
-            inputSpikes = np.random.randint(0, 2, size=self.inputSize).astype(float)
+            inputSpikes = spikeTrain[step]
             self._backward()
             outputSpikes = self._forward(inputSpikes)
             self._applySTDP()
