@@ -28,6 +28,7 @@ class Neuron:
         if currentTime < self.refractoryEnd:
             return False
         
+        #self.membranePotential *= self.decay
         self.membranePotential += incomingSpikes
         leakCurrent = self.leakConductance * (self.membranePotential - self.restPotential)
         self.membranePotential -= leakCurrent

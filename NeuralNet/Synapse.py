@@ -27,13 +27,13 @@ class Synapse:
 
         self.trace *= self.traceDecay
         self.weight += self.lr * delta
-        self.weight = np.clip(self.weight, 0.0, self.maxW)        
+        self.weight = np.clip(self.weight, -self.maxW, self.maxW)        
         return self.weight
         
     def handleReward(self, reward):
         delta = self.lr * self.trace * reward
         self.weight += delta
-        self.weight = np.clip(self.weight, 0.0, self.maxW)
+        self.weight = np.clip(self.weight, -self.maxW, self.maxW)
         return self.weight
     
     def getCurrent(self, spike):
