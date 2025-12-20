@@ -24,18 +24,24 @@ class SNN:
         self.interInputWeights = self._createWeights(self.inputSize, self.inputSize).tocsr()
         self.interHiddenWeights = self._createWeights(self.hidden, self.hidden).tocsr()
         self.interOutputWeights = self._createWeights(self.outputSize, self.outputSize).tocsr()
+        self.hiddenInputWeights = self._createWeights(self.hidden, self.inputSize).tocsr()
+        self.outputHiddenWeights = self._createWeights(self.outputSize, self.hidden).tocsr()
 
         self.inputHiddenSynapses = {}
         self.hiddenOutputSynapses = {}
         self.interInputSynapses = {}
         self.interHiddenSynapses = {}
         self.interOutputSynapses = {}
+        self.hiddenInputSynapses = {}
+        self.outputHiddenSynapses = {}
 
         self._createSynapses(self.inputToHiddenWeights, self.inputSize, self.inputHiddenSynapses, self.inputNeurons, self.hiddenNeurons)
         self._createSynapses(self.hiddenToOutputWeights, self.hidden, self.hiddenOutputSynapses, self.hiddenNeurons, self.outputNeurons)
         self._createSynapses(self.interInputWeights, self.inputSize, self.interInputSynapses, self.inputNeurons, self.inputNeurons)
         self._createSynapses(self.interHiddenWeights, self.hidden, self.interHiddenSynapses, self.hiddenNeurons, self.hiddenNeurons)
         self._createSynapses(self.interOutputWeights, self.outputSize, self.interOutputSynapses, self.outputNeurons, self.outputNeurons)
+        self._createSynapses(self.hiddenInputWeights, self.hidden, self.hiddenInputSynapses, self.hiddenNeurons, self.inputNeurons)
+        self._createSynapses(self.outputHiddenWeights, self.outputSize, self.outputHiddenSynapses, self.outputNeurons, self.hiddenNeurons)
 
         self.prevInputSpikes = np.zeros(self.inputSize)
         self.prevHiddenSpikes = np.zeros(self.hidden)
@@ -62,7 +68,8 @@ class SNN:
         weightedInput = weights.T.dot(inputSpikes)
         if update:
             outputSpikes = np.zeros(neuronsLen, dtype=bool)
-            weightedInput += recurrentSpikes
+            if recurrentSpikes is not None:
+                weightedInput += recurrentSpikes
             for idx in range(len(neurons)):
                 neuron = neurons[idx]
                 outputSpikes[idx] = neuron.update(weightedInput[idx], self.currentTime)
@@ -76,12 +83,16 @@ class SNN:
         hiddenSpikes = self.vectorisedUpdate(self.hiddenNeurons, self.prevHiddenSpikes, self.interHiddenWeights, update = True, recurrentSpikes = hiddenSpikesTemp)
         outputSpikesTemp = self.vectorisedUpdate(self.outputNeurons, hiddenSpikes, self.hiddenToOutputWeights)
         outputSpikes = self.vectorisedUpdate(self.outputNeurons, self.prevOutputSpikes, self.interOutputWeights, update = True, recurrentSpikes = outputSpikesTemp)
-        
+
         self.prevInputSpikes = inputSpikes
         self.prevHiddenSpikes = hiddenSpikes
         self.prevOutputSpikes = outputSpikes
         
         return outputSpikes
+    
+    def _backward(self):
+        self.prevHiddenSpikes = self.vectorisedUpdate(self.hiddenNeurons, self.prevOutputSpikes, self.outputHiddenWeights, update = True)
+        self.prevInputSpikes = self.vectorisedUpdate(self.inputNeurons, self.prevHiddenSpikes, self.hiddenInputWeights, update = True)
 
     def _calculateReward(self, output, targetRate = 0.3):
         reward = 0
@@ -101,6 +112,8 @@ class SNN:
         self.interInputWeights = self.stdp(self.interInputSynapses, self.interInputWeights)
         self.interHiddenWeights = self.stdp(self.interHiddenSynapses, self.interHiddenWeights)
         self.interOutputWeights = self.stdp(self.interOutputSynapses, self.interOutputWeights)
+        self.hiddenInputWeights = self.stdp(self.hiddenInputSynapses, self.hiddenInputWeights)
+        self.outputHiddenWeights = self.stdp(self.outputHiddenSynapses, self.outputHiddenWeights)
 
     def _applyReward(self, reward):
         self.inputToHiddenWeights = self.processReward(reward, self.inputHiddenSynapses, self.inputToHiddenWeights)
@@ -108,6 +121,8 @@ class SNN:
         self.interInputWeights = self.processReward(reward, self.interInputSynapses, self.interInputWeights)
         self.interHiddenWeights = self.processReward(reward, self.interHiddenSynapses, self.interHiddenWeights)
         self.interOutputWeights = self.processReward(reward, self.interOutputSynapses, self.interOutputWeights)
+        self.hiddenInputWeights = self.processReward(reward, self.hiddenInputSynapses, self.hiddenInputWeights)
+        self.outputHiddenWeights = self.processReward(reward, self.outputHiddenSynapses, self.outputHiddenWeights)
 
     def _createSynapses(self, weightMatrix, size, syanpseDict, firstNeuron, secondNeuron):
         tempWeights = weightMatrix.tolil()
@@ -130,6 +145,7 @@ class SNN:
         for step in range(self.timeSteps):
             self.currentTime = step
             inputSpikes = np.random.randint(0, 2, size=self.inputSize).astype(float)
+            self._backward()
             outputSpikes = self._forward(inputSpikes)
             self._applySTDP()
             reward = self._calculateReward(outputSpikes)

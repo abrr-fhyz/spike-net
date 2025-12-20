@@ -15,8 +15,13 @@ class Neuron:
 
         self.spikeTrace = 0.0
 
-    def setName(self, name):
+    def setName(self, name, type):
         self.neuronName = name
+        self.neuronType = type
+
+    def identifier(self, id):
+        # This parameter exists so its easier to integrate the C. elegans connectome
+        self.idx = id
 
     def triggerSpike(self, time):
         self.spikeTime = time

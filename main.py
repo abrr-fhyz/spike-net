@@ -1,6 +1,6 @@
 from NeuralNet.SNN import SNN
 
-steps = 1000
+steps = 100
 i = 6
 h = 7
 o = 4
