@@ -8,8 +8,10 @@ A custom-designed, vectorized Leaky Integrate-and-Fire (LIF) Spiking Neural Netw
 - Architecture assumes neurons to be in a Three-layer formation: Input, Hidden, and Output neuron layers.
 - Seven synaptic configurations: Input→Hidden, Hidden→Output, Input→Input, Hidden→Hidden, Output→Output, Output→Hidden, Hidden→Input 
 - STDP **(Spike-Timing-Dependent Plasticity)** learning rule.
-- ***C. elegans* connectome integration**: Models 302 neurons and 5,106 biological synapses from the `Data` module into an instance of `NeuralNet.SNN`.
 
 ## Project Structure
 - **`NeuralNet`**: Core module containing the SNN implementation, neurons, and synapses.
 - **`Data`**: Contains the *C. elegans* connectome data and parser.
+
+# Neural Network Model of the *C. elegans* brain
+***C. elegans* connectome**: Models 302 neurons and 5,106 biological synapses from the `Data` module into an instance of `NeuralNet.SNN`.
