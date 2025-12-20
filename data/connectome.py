@@ -116,16 +116,14 @@ def classifySynapses(synapses: list[Synapse]):
             outputHiddenSynapses[(x.idx, y.idx)] = synapse
         else:
             exp += 1
-            print(f"Exception found -> {x.neuronType} to {y.neuronType}")
+            #print(f"Exception found -> {x.neuronType} to {y.neuronType}")
 
-if __name__ == "__main__":
-    synapses = loadConnectome('data.csv')
+def buildNervousSystem():
+    synapses = loadConnectome('Data/data.csv')
+    print("========== 302 NEURONS INITIALISED =========")
+    return synapses, sensoryNeurons, interNeurons, motorNeurons
+
+def buildSynapticStructure(synapses):
     classifySynapses(synapses)
-    print(len(inputHiddenSynapses))
-    print(len(interInputSynapses))
-    print(len(interHiddenSynapses))
-    print(len(hiddenOutputSynapses))
-    print(len(interOutputSynapses))
-    print(len(hiddenInputSynapses))
-    print(len(outputHiddenSynapses))
-    print(f"Exceptions: {exp}")
+    print("========== 5103 SYNAPSES INITIALISED =========")
+    return inputHiddenSynapses, hiddenOutputSynapses, interInputSynapses, interHiddenSynapses, interOutputSynapses, outputHiddenSynapses, hiddenInputSynapses

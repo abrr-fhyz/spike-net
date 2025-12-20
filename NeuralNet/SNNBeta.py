@@ -4,38 +4,48 @@ from NeuralNet.Neuron import Neuron
 from NeuralNet.Synapse import Synapse
 
 class SNN:
-    def __init__(self, timeSteps):
+    def __init__(self, timeSteps, inputSize, hidden, outputSize):
         self.currentTime = 0
         self.timeSteps = timeSteps
 
-    def initialize(self, inputNeurons, hiddenNeurons, outputNeurons, IHSynapses, HOSynapses, IISynapses, HHSynapses, OOSynapses, OHSynapses, HISynapses):
-        self.inputNeurons = inputNeurons
-        self.hiddenNeurons = hiddenNeurons
-        self.outputNeurons = outputNeurons
+        self.inputSize = inputSize
+        self.hidden = hidden
+        self.outputSize = outputSize
 
-        self.inputSize = len(inputNeurons)
-        self.hidden = len(hiddenNeurons)
-        self.outputSize = len(outputNeurons)
+        self.initializeRandom()
 
-        self.inputHiddenSynapses = IHSynapses
-        self.hiddenOutputSynapses = HOSynapses
-        self.interInputSynapses = IISynapses
-        self.interHiddenSynapses = HHSynapses
-        self.interOutputSynapses = OOSynapses
-        self.hiddenInputSynapses = HISynapses
-        self.outputHiddenSynapses = OHSynapses
+    def initializeRandom(self):
+        self.inputNeurons = [Neuron() for i in range(self.inputSize)]
+        self.hiddenNeurons = [Neuron() for i in range(self.hidden)]
+        self.outputNeurons = [Neuron() for i in range(self.outputSize)]
+
+        self.inputToHiddenWeights = self._createWeights(self.inputSize, self.hidden).tocsr()
+        self.hiddenToOutputWeights = self._createWeights(self.hidden, self.outputSize).tocsr()
+        self.interInputWeights = self._createWeights(self.inputSize, self.inputSize).tocsr()
+        self.interHiddenWeights = self._createWeights(self.hidden, self.hidden).tocsr()
+        self.interOutputWeights = self._createWeights(self.outputSize, self.outputSize).tocsr()
+        self.hiddenInputWeights = self._createWeights(self.hidden, self.inputSize).tocsr()
+        self.outputHiddenWeights = self._createWeights(self.outputSize, self.hidden).tocsr()
+
+        self.inputHiddenSynapses = {}
+        self.hiddenOutputSynapses = {}
+        self.interInputSynapses = {}
+        self.interHiddenSynapses = {}
+        self.interOutputSynapses = {}
+        self.hiddenInputSynapses = {}
+        self.outputHiddenSynapses = {}
+
+        self._createSynapses(self.inputToHiddenWeights, self.inputSize, self.inputHiddenSynapses, self.inputNeurons, self.hiddenNeurons)
+        self._createSynapses(self.hiddenToOutputWeights, self.hidden, self.hiddenOutputSynapses, self.hiddenNeurons, self.outputNeurons)
+        self._createSynapses(self.interInputWeights, self.inputSize, self.interInputSynapses, self.inputNeurons, self.inputNeurons)
+        self._createSynapses(self.interHiddenWeights, self.hidden, self.interHiddenSynapses, self.hiddenNeurons, self.hiddenNeurons)
+        self._createSynapses(self.interOutputWeights, self.outputSize, self.interOutputSynapses, self.outputNeurons, self.outputNeurons)
+        self._createSynapses(self.hiddenInputWeights, self.hidden, self.hiddenInputSynapses, self.hiddenNeurons, self.inputNeurons)
+        self._createSynapses(self.outputHiddenWeights, self.outputSize, self.outputHiddenSynapses, self.outputNeurons, self.hiddenNeurons)
 
         self.prevInputSpikes = np.zeros(self.inputSize)
         self.prevHiddenSpikes = np.zeros(self.hidden)
-        self.prevOutputSpikes = np.zeros(self.outputSize)
-
-        self.inputToHiddenWeights = self._generateWeights(self.inputHiddenSynapses, self.inputSize, self.hidden).tocsr()
-        self.hiddenToOutputWeights = self._generateWeights(self.hiddenOutputSynapses, self.hidden, self.outputSize).tocsr()
-        self.interInputWeights = self._generateWeights(self.interInputSynapses, self.inputSize, self.inputSize).tocsr()
-        self.interHiddenWeights = self._generateWeights(self.interHiddenSynapses, self.hidden, self.hidden).tocsr()
-        self.interOutputWeights = self._generateWeights(self.interOutputSynapses, self.outputSize, self.outputSize).tocsr()
-        self.hiddenInputWeights = self._generateWeights(self.hiddenInputSynapses, self.hidden, self.inputSize).tocsr()
-        self.outputHiddenWeights = self._generateWeights(self.outputHiddenSynapses, self.outputSize, self.hidden).tocsr()
+        self.prevOutputSpikes = np.zeros(self.outputSize)  
 
     def stdp(self, synapsesDict: dict[tuple[int, int], Synapse], weightMatrix):
         weightMatrix = weightMatrix.tolil()
@@ -114,14 +124,23 @@ class SNN:
         self.hiddenInputWeights = self.processReward(reward, self.hiddenInputSynapses, self.hiddenInputWeights)
         self.outputHiddenWeights = self.processReward(reward, self.outputHiddenSynapses, self.outputHiddenWeights)
 
-    def _generateWeights(self, synapsesDict: dict[tuple[int, int], Synapse], rows, cols):
+    def _createSynapses(self, weightMatrix, size, syanpseDict, firstNeuron, secondNeuron):
+        tempWeights = weightMatrix.tolil()
+        for idx in range(size):
+            for jdx in tempWeights.rows[idx]:
+                weight = tempWeights[idx, jdx]
+                syanpseDict[(idx, jdx)] = Synapse(weight, firstNeuron[idx], secondNeuron[jdx])
+
+    def _createWeights(self, rows, cols):
+        #randomly generated for now
         weights = lil_matrix((rows, cols))
-        for (idx, jdx) in synapsesDict:
-            synapse = synapsesDict[(idx, jdx)]
-            weight = synapse.weight
-            weights[idx, jdx] = weight
+        for idx in range(rows):
+            nConnections = max(1, int(cols * 0.4))
+            connected = np.random.choice(cols, size=nConnections, replace=False)
+            for jdx in connected:
+                weights[idx, jdx] = np.random.rand() * 2.0 + 0.3
         return weights
-        
+
     def train(self):
         for step in range(self.timeSteps):
             self.currentTime = step
