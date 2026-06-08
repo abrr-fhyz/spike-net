@@ -125,5 +125,5 @@ def buildNervousSystem():
 
 def buildSynapticStructure(synapses):
     classifySynapses(synapses)
-    print("========== 5103 SYNAPSES INITIALISED =========")
+    print("========== 5149 SYNAPSES INITIALISED =========")
     return inputHiddenSynapses, hiddenOutputSynapses, interInputSynapses, interHiddenSynapses, interOutputSynapses, outputHiddenSynapses, hiddenInputSynapses
