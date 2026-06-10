@@ -11,180 +11,83 @@ Total synapses created: 5149
 
 ============================================================
   Episode 1  |  ChemotaxisEnvironment
-  Start: (37.0, 35.4)
+  Start: (44.3, 39.5)
   Food:  (160,160)
 ============================================================
-  Step 5342   │ RUN  │ dist=9.9    │ conc=0.7183 │ reward=+505.906  │ [███████████████████░]
+TimeStep: 8446  | Reward: 191.32667     | EnvReward: 500.40080  | InternalReward: 0.308368      │ dist=10.00    │ conc=0.7168   │ [███████████████████░]
+
 
   ✓ REACHED FOOD
-  Steps taken         : 5343
-  Final distance      : 9.93
-  Cumulative reward   : 557.676
-  Path length         : 2617.6
-  Chemotaxis index    : 0.167  (range [-1, 1])
-  Tumble count        : 178  (rate 0.033/step)
+  Steps taken         : 8447
+  Final distance      : 9.99
+  Cumulative reward   : 556.478
+  Path length         : 860.3
+  Chemotaxis index    : 0.063  (range [-1, 1])
 
 ============================================================
   Episode 2  |  ChemotaxisEnvironment
-  Start: (41.6, 36.3)
+  Start: (37.1, 43.3)
   Food:  (160,160)
 ============================================================
-  Step 9295   │ RUN  │ dist=10.0   │ conc=0.7172 │ reward=+503.994  │ [███████████████████░]
+TimeStep: 8976  | Reward: 191.68264     | EnvReward: 501.18547  | InternalReward: 0.399378      │ dist=10.00    │ conc=0.7168   │ [███████████████████░]
+
 
   ✓ REACHED FOOD
-  Steps taken         : 9296
-  Final distance      : 9.97
-  Cumulative reward   : -1693.084
-  Path length         : 4531.9
-  Chemotaxis index    : 0.034  (range [-1, 1])
-  Tumble count        : 364  (rate 0.039/step)
+  Steps taken         : 8977
+  Final distance      : 9.99
+  Cumulative reward   : 706.620
+  Path length         : 897.9
+  Chemotaxis index    : 0.300  (range [-1, 1])
 
 ============================================================
   Episode 3  |  ChemotaxisEnvironment
-  Start: (39.9, 43.8)
+  Start: (37.7, 40.0)
   Food:  (160,160)
 ============================================================
-  Step 4517   │ RUN  │ dist=10.0   │ conc=0.7170 │ reward=+504.132  │ [███████████████████░]
+TimeStep: 19999 | Reward: -0.600729     | EnvReward: -0.071523  | InternalReward: -0.92778      │ dist=89.20    │ conc=0.0511   │ [█████████████░░░░░░░]
 
-  ✓ REACHED FOOD
-  Steps taken         : 4518
-  Final distance      : 9.98
-  Cumulative reward   : -143.416
-  Path length         : 2198.8
-  Chemotaxis index    : 0.106  (range [-1, 1])
-  Tumble count        : 189  (rate 0.042/step)
-
-============================================================
-  Episode 4  |  ChemotaxisEnvironment
-  Start: (40.9, 44.0)
-  Food:  (160,160)
-============================================================
-  Step 3544   │ RUN  │ dist=9.9    │ conc=0.7197 │ reward=+503.856  │ [███████████████████░]
-
-  ✓ REACHED FOOD
-  Steps taken         : 3545
-  Final distance      : 9.87
-  Cumulative reward   : 607.864
-  Path length         : 1728.9
-  Chemotaxis index    : 0.080  (range [-1, 1])
-  Tumble count        : 143  (rate 0.040/step)
-
-============================================================
-  Episode 5  |  ChemotaxisEnvironment
-  Start: (41.6, 35.4)
-  Food:  (160,160)
-============================================================
-  Step 4697   │ RUN  │ dist=9.9    │ conc=0.7199 │ reward=+502.712  │ [███████████████████░]
-
-  ✓ REACHED FOOD
-  Steps taken         : 4698
-  Final distance      : 9.86
-  Cumulative reward   : -591.699
-  Path length         : 2286.4
-  Chemotaxis index    : 0.133  (range [-1, 1])
-  Tumble count        : 189  (rate 0.040/step)
-
-============================================================
-  MULTI-EPISODE SUMMARY (5 episodes)
-============================================================
-  Success rate        : 5/5  (100%)
-  Steps (mean ± std)  : 5480 ± 1993
-  Chemo. index (mean) : 0.104
-  Cum. reward (mean)  : -252.53
-
-PS C:\SNN> python test.py
-========== BUILDING CONNECTOME ==========
-Total neurons found: 302
-Sensory neurons: 78
-Interneurons: 149
-Motor neurons: 75
-Total synapses created: 5149
-========== 302 NEURONS INITIALISED =========
-========== 5149 SYNAPSES INITIALISED =========
-========== BUILDING ENVIRONMENT ==========
-========== BOOTING NERVOUS SYSTEM ==========
-
-============================================================
-  Episode 1  |  ChemotaxisEnvironment
-  Start: (35.9, 38.5)
-  Food:  (160,160)
-============================================================
-  Step 3564   │ TMBL │ dist=10.0   │ conc=0.7171 │ reward=+502.228  │ [███████████████████░]
-
-  ✓ REACHED FOOD
-  Steps taken         : 3565
-  Final distance      : 9.98
-  Cumulative reward   : 557.018
-  Path length         : 1737.5
-  Chemotaxis index    : 0.059  (range [-1, 1])
-  Tumble count        : 148  (rate 0.042/step)
-
-============================================================
-  Episode 2  |  ChemotaxisEnvironment
-  Start: (37.5, 43.0)
-  Food:  (160,160)
-============================================================
-  Step 2219   │ RUN  │ dist=9.6    │ conc=0.7250 │ reward=+504.901  │ [███████████████████░]
-
-  ✓ REACHED FOOD
-  Steps taken         : 2220
-  Final distance      : 9.65
-  Cumulative reward   : 810.743
-  Path length         : 1083.3
-  Chemotaxis index    : 0.175  (range [-1, 1])
-  Tumble count        : 89  (rate 0.040/step)
-
-============================================================
-  Episode 3  |  ChemotaxisEnvironment
-  Start: (41.9, 38.2)
-  Food:  (160,160)
-============================================================
-  Step 9999   │ TMBL │ dist=134.0  │ conc=0.0115 │ reward=-0.012    │ [██████████░░░░░░░░░░]
 
   ✗ Did not reach food
-  Steps taken         : 10000
-  Final distance      : 133.96
-  Cumulative reward   : -1145.997
-  Path length         : 4872.2
-  Chemotaxis index    : 0.000  (range [-1, 1])
-  Tumble count        : 411  (rate 0.041/step)
+  Steps taken         : 20000
+  Final distance      : 89.24
+  Cumulative reward   : -326.125
+  Path length         : 2430.9
+  Chemotaxis index    : -0.033  (range [-1, 1])
 
 ============================================================
   Episode 4  |  ChemotaxisEnvironment
-  Start: (38.4, 44.7)
+  Start: (35.0, 36.0)
   Food:  (160,160)
 ============================================================
-  Step 7526   │ RUN  │ dist=9.7    │ conc=0.7234 │ reward=+505.872  │ [███████████████████░]
+TimeStep: 19999 | Reward: -0.755971     | EnvReward: -0.010540  | InternalReward: -1.21667      │ dist=143.2    │ conc=0.0085   │ [█████████░░░░░░░░░░░]
 
-  ✓ REACHED FOOD
-  Steps taken         : 7527
-  Final distance      : 9.71
-  Cumulative reward   : -90.168
-  Path length         : 3683.0
-  Chemotaxis index    : 0.087  (range [-1, 1])
-  Tumble count        : 259  (rate 0.034/step)
+
+  ✗ Did not reach food
+  Steps taken         : 20000
+  Final distance      : 143.19
+  Cumulative reward   : -597.187
+  Path length         : 1999.8
+  Chemotaxis index    : 0.061  (range [-1, 1])
 
 ============================================================
   Episode 5  |  ChemotaxisEnvironment
-  Start: (38.7, 37.6)
+  Start: (41.4, 39.0)
   Food:  (160,160)
 ============================================================
-  Step 9400   │ RUN  │ dist=10.0   │ conc=0.7177 │ reward=+505.879  │ [███████████████████░]
+TimeStep: 3011  | Reward: 190.68088     | EnvReward: 501.17763  | InternalReward: -1.21667      │ dist=9.900    │ conc=0.7188   │ [███████████████████░]
+
 
   ✓ REACHED FOOD
-  Steps taken         : 9401
-  Final distance      : 9.95
-  Cumulative reward   : -192.746
-  Path length         : 4578.0
-  Chemotaxis index    : 0.044  (range [-1, 1])
-  Tumble count        : 399  (rate 0.042/step)
+  Steps taken         : 3012
+  Final distance      : 9.90
+  Cumulative reward   : 757.657
+  Path length         : 301.1
+  Chemotaxis index    : 0.584  (range [-1, 1])
 
 ============================================================
   MULTI-EPISODE SUMMARY (5 episodes)
 ============================================================
-  Success rate        : 4/5  (80%)
-  Steps (mean ± std)  : 6543 ± 3119
-  Chemo. index (mean) : 0.073
-  Cum. reward (mean)  : -12.23
-
-PS C:\SNN>
+  Success rate        : 3/5  (60%)
+  Steps (mean ± std)  : 12087 ± 6790
+  Chemo. index (mean) : 0.195
+  Cum. reward (mean)  : 219.49

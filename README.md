@@ -12,6 +12,7 @@ A custom-designed, vectorized Leaky Integrate-and-Fire (LIF) Spiking Neural Netw
 ## Project Structure
 - **`NeuralNet`**: Core module containing the SNN implementation, neurons, and synapses.
 - **`Data`**: Contains the *C. elegans* connectome data and parser.
+- **`Env`**: Contains the environment module for simulating worm chemotaxis.
 
 # Neural Network Model of the *C. elegans* brain
 ***C. elegans* connectome**: Models 302 neurons and 5,106 biological synapses from the `Data` module into an instance of `NeuralNet.SNN`.

@@ -1,4 +1,3 @@
-import argparse
 import sys
 import numpy as np
 
@@ -8,7 +7,7 @@ from Data.Connectome import buildNervousSystem, buildSynapticStructure
 
 # CONFIG #
 ARENA = "single"
-STEPS = 10000
+STEPS = 20000
 SEED = None
 EPISODES = 5
 QUIET = False
@@ -20,8 +19,9 @@ ARENA_MAP = {
     "noisy":  ChemotaxisEnvironment.noisy_arena,
 }
 
-def run_episode(env: ChemotaxisEnvironment, nervousSystem: SNN, max_steps: int, episode_idx: int, quiet: bool) -> dict:
+def run_episode(env: ChemotaxisEnvironment, nervousSystem: SNN, episode_idx: int) -> dict:
     observation = env.reset()
+    nervousSystem.resetSNN()
     print(f"\n{'='*60}")
     print(f"  Episode {episode_idx + 1}  |  {type(env).__name__}")
     print(f"  Start: ({env.position[0]:.1f}, {env.position[1]:.1f})")
@@ -31,24 +31,7 @@ def run_episode(env: ChemotaxisEnvironment, nervousSystem: SNN, max_steps: int, 
     )
     print(f"  Food:  {food_desc}")
     print(f"{'='*60}")
-    done = False
-    for step in range(max_steps):
-        nervousSystem.currentTime = step
-        nervousSystem._backward()
-        output = nervousSystem._forward(observation)
-        nervousSystem._applySTDP()
-        observation, reward, done, info = env.step(output)
-        nervousSystem._applyReward(reward)
-        if not quiet:
-            bar_len  = 20
-            dist     = info["distance"]
-            max_dist = env.world_size * np.sqrt(2)
-            filled   = int(bar_len * (1.0 - dist / max_dist))
-            bar      = "█" * filled + "░" * (bar_len - filled)
-            mode     = "RUN " if info["is_running"] else "TMBL"
-            print(f"  Step {step:<6} │ {mode} │ dist={dist:<6.1f} │ conc={info['concentration']:.4f} │ reward={reward:<+9.3f} │ [{bar}]", end="\r", flush=True)
-        if done:
-            break
+    nervousSystem.train(env, observation, quiet = QUIET)
     print()
     summary = env.episode_summary()
     _print_summary(summary)
@@ -62,7 +45,7 @@ def _print_summary(s: dict):
     print(f"  Cumulative reward   : {s['cumulative_reward']:.3f}")
     print(f"  Path length         : {s['path_length']:.1f}")
     print(f"  Chemotaxis index    : {s['chemotaxis_index']:.3f}  (range [-1, 1])")
-    print(f"  Tumble count        : {s['tumble_count']}  (rate {s['tumble_rate']:.3f}/step)")
+    print(f"  Tumble count        : {s['tumble_count']}  (omega turns, rate {s['tumble_rate']:.3f}/step)")
 
 
 def _print_multi_summary(summaries: list):
@@ -96,12 +79,11 @@ def main():
 
     summaries = []
     for ep in range(EPISODES):
-        summary = run_episode(env, nervousSystem, STEPS, ep, QUIET)
+        summary = run_episode(env, nervousSystem, ep)
         summaries.append(summary)
 
     if EPISODES > 1:
         _print_multi_summary(summaries)
-
 
 if __name__ == "__main__":
     try:

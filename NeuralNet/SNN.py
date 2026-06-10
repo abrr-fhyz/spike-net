@@ -1,12 +1,17 @@
 import numpy as np
+import math
 from scipy.sparse import csr_matrix, lil_matrix
 from NeuralNet.Neuron import Neuron
 from NeuralNet.Synapse import Synapse
 
+PHI = (1 + math.sqrt(5)) / 2
+
 class SNN:
-    def __init__(self, timeSteps):
+    def __init__(self, timeSteps, interval = 10):
         self.currentTime = 0
         self.timeSteps = timeSteps
+        self.spikeInterval = interval
+        self.forwardedOnce = False
 
     def initialize(self, inputNeurons, hiddenNeurons, outputNeurons, IHSynapses, HOSynapses, IISynapses, HHSynapses, OOSynapses, OHSynapses, HISynapses):
         self.inputNeurons = inputNeurons
@@ -36,6 +41,13 @@ class SNN:
         self.interOutputWeights = self._generateWeights(self.interOutputSynapses, self.outputSize, self.outputSize).tocsr()
         self.hiddenInputWeights = self._generateWeights(self.hiddenInputSynapses, self.hidden, self.inputSize).tocsr()
         self.outputHiddenWeights = self._generateWeights(self.outputHiddenSynapses, self.outputSize, self.hidden).tocsr()
+
+    def resetSNN(self):
+        self.prevInputSpikes = np.zeros(self.inputSize)
+        self.prevHiddenSpikes = np.zeros(self.hidden)
+        self.prevOutputSpikes = np.zeros(self.outputSize)
+        self.forwardedOnce = False
+        self.currentTime = 0
 
     def stdp(self, synapsesDict: dict[tuple[int, int], Synapse], weightMatrix):
         weightMatrix = weightMatrix.tolil()
@@ -77,10 +89,13 @@ class SNN:
         self.prevInputSpikes = inputSpikes
         self.prevHiddenSpikes = hiddenSpikes
         self.prevOutputSpikes = outputSpikes
+        self.forwardedOnce = True
         
         return outputSpikes
     
     def _backward(self):
+        if not self.forwardedOnce:
+            return
         self.prevHiddenSpikes = self.vectorisedUpdate(self.hiddenNeurons, self.prevOutputSpikes, self.outputHiddenWeights, update = True)
         self.prevInputSpikes = self.vectorisedUpdate(self.inputNeurons, self.prevHiddenSpikes, self.hiddenInputWeights, update = True)
 
@@ -121,15 +136,40 @@ class SNN:
             weight = synapse.weight
             weights[idx, jdx] = weight
         return weights
-        
-    def train(self, spikeTrain):
+
+    def train(self, env, observation, quiet = False):
+        done = False
         for step in range(self.timeSteps):
             self.currentTime = step
-            inputSpikes = spikeTrain[step]
             self._backward()
-            outputSpikes = self._forward(inputSpikes)
-            self._applySTDP()
-            reward = self._calculateReward(outputSpikes)
+            outputSpikes = self._forward(observation)
+            observation, externalReward, done, info = env.step(outputSpikes)
+            internalReward = self._calculateReward(outputSpikes)
+            reward = (PHI * internalReward + externalReward) / (PHI + 1)
+            if step % self.spikeInterval == 0:
+                self._applySTDP()
             self._applyReward(reward)
-            print(f"TimeStep: {step} | Output: {outputSpikes} | Reward: {reward:.3f}")
+            if not quiet:
+                bar_len  = 20
+                dist     = info["distance"]
+                max_dist = env.world_size * np.sqrt(2)
+                filled   = int(bar_len * (1.0 - dist / max_dist))
+                bar      = "█" * filled + "░" * (bar_len - filled)
+                bar = f"{bar:<20.20}"
+                print(
+                    f"TimeStep: {step:4d}\t"
+                    f"| Reward: {reward:1.5f}\t"
+                    f"| EnvReward: {externalReward:1.5f}\t"
+                    f"| InternalReward: {internalReward:1.5f}\t"
+                    f"│ dist={dist:3.1f}\t"
+                    f"│ conc={info['concentration']:3.4f}\t"
+                    f"│ [{bar}]",
+                    end="\r",
+                    flush=True
+                )
+            if done:
+                print()
+                break
+        return done
+
             

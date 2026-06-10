@@ -1,15 +1,6 @@
 import numpy as np
-from NeuralNet.SNN import SNN
+from NeuralNet.SNNBeta import SNN
 from Data.Connectome import buildNervousSystem, buildSynapticStructure
-
-#Sample SNN Example
-#from NeuralNet.SNNBeta import SNN
-#steps = 100
-#i = 6
-#h = 7
-#o = 4
-#model = SNN(steps, i, h, o)
-#model.train()
 
 synapses, sensoryNeurons, interNeurons, motorNeurons = buildNervousSystem()
 sensoryToInterSynapses, interToMotorSynapses, ssSynapses, iiSynapses, mmSynapses, motorToInterSynapses, interToSensorySynapses = buildSynapticStructure(synapses)

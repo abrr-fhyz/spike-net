@@ -118,7 +118,9 @@ class ChemotaxisEnvironment:
 
         self.position: np.ndarray = np.zeros(2)
         self.heading:  float      = 0.0
-        self._is_running: bool    = True     # True=run, False=tumbling
+        self._is_running: bool    = True     # True=forward, False=reversing
+        self._reversalStepsLeft: int = 0
+        self._ventralHistory: List[float] = []   # for omega-turn detection
 
         self.reset()
 
@@ -126,20 +128,26 @@ class ChemotaxisEnvironment:
         self.sensoryMap: Dict[str, int] = {n.neuronName: n.idx for n in self.sensory_neurons}
         self.motorMap:   Dict[str, int] = {n.neuronName: n.idx for n in self.motor_neurons}
 
-        self.leftMotors:  List[int] = []
-        self.rightMotors: List[int] = []
+        self.dorsalFwd:   List[int] = []   # DB  – forward dorsal bend
+        self.ventralFwd:  List[int] = []   # VB  – forward ventral bend
+        self.dorsalInh:   List[int] = []   # VD  – cross-inhibits dorsal
+        self.ventralInh:  List[int] = []   # DD  – cross-inhibits ventral
+        self.backwardMot: List[int] = []   # AS, DA – reversal drive
         for n in self.motor_neurons:
-            if n.neuronName.endswith("L"):
-                self.leftMotors.append(n.idx)
-            elif n.neuronName.endswith("R"):
-                self.rightMotors.append(n.idx)
+            name = n.neuronName
+            if name.startswith("DB"):
+                self.dorsalFwd.append(n.idx)
+            elif name.startswith("VB"):
+                self.ventralFwd.append(n.idx)
+            elif name.startswith("VD"):
+                self.dorsalInh.append(n.idx)
+            elif name.startswith("DD"):
+                self.ventralInh.append(n.idx)
+            elif name.startswith("AS") or name.startswith("DA"):
+                self.backwardMot.append(n.idx)
 
 
-    def reset(
-        self,
-        start_position: Optional[Tuple[float, float]] = None,
-        start_heading:  Optional[float] = None,
-    ) -> np.ndarray:
+    def reset(self, start_position: Optional[Tuple[float, float]] = None, start_heading:  Optional[float] = None) -> np.ndarray:
         """
         Reset the environment for a new episode.
 
@@ -164,6 +172,8 @@ class ChemotaxisEnvironment:
             else float(start_heading)
         )
         self._is_running   = True
+        self._reversalStepsLeft = 0
+        self._ventralHistory = []
         self._step_count   = 0
         self._prev_conc    = total_concentration(self.food_sources, self.position)
         self._adapted_conc = self._prev_conc
@@ -178,27 +188,54 @@ class ChemotaxisEnvironment:
         assert self.episode is not None, "Call reset() before step()."
         if self.motor_noise > 0:
             motor_spikes = motor_spikes + self._rng.normal(0, self.motor_noise, motor_spikes.shape)
-        left_drive, right_drive = self._decode_motor(motor_spikes)
-        conc_now   = total_concentration(self.food_sources, self.position)
-        delta_conc = conc_now - self._prev_conc
-        tumble_prob = self.base_tumble_rate * np.exp(-self.tumble_bias_k * delta_conc)
-        tumble_prob = float(np.clip(tumble_prob, 0.0, 1.0))
-        if self._rng.random() < tumble_prob:
-            tumble_angle = self._rng.uniform(-np.pi, np.pi)
-            self.heading += tumble_angle
+            motor_spikes = np.maximum(motor_spikes, 0.0)
+
+        # --- decode motor pools ---
+        def poolMean(indices):
+            return float(np.mean(motor_spikes[indices])) if indices else 0.0
+
+        netDorsal  = max(0.0, poolMean(self.dorsalFwd)  - poolMean(self.dorsalInh))
+        netVentral = max(0.0, poolMean(self.ventralFwd) - poolMean(self.ventralInh))
+        bwdDrive   = poolMean(self.backwardMot)
+        fwdDrive   = (netDorsal + netVentral) / 2.0
+
+        # reversal: triggered when backward neurons dominate forward ones
+        bwdFraction = bwdDrive / (fwdDrive + bwdDrive + 1e-9)
+        if bwdFraction > 0.55 and self._reversalStepsLeft == 0:
+            self._reversalStepsLeft = int(self._rng.integers(3, 12))
+        if self._reversalStepsLeft > 0:
+            self._reversalStepsLeft -= 1
             self._is_running = False
-            if self.episode is not None:
-                self.episode.run_tumble_events.append(self._step_count)
-            speed = self.base_speed * 0.2   # nearly stationary during tumble
         else:
             self._is_running = True
-            turn_rate     = (right_drive - left_drive) * 0.4
-            self.heading += turn_rate
-            avg_drive = (left_drive + right_drive) / 2.0
-            speed = self.base_speed * max(0.3, avg_drive)
+
+        # omega turn: triggered when ventral burst integral exceeds threshold
+        self._ventralHistory.append(netVentral)
+        if len(self._ventralHistory) > 5:
+            self._ventralHistory.pop(0)
+        omegaTurn = False
+        if len(self._ventralHistory) == 5 and self._is_running:
+            if float(np.sum(self._ventralHistory)) > 3.0:
+                omegaTurn = True
+                self.heading += float(self._rng.uniform(0.5 * np.pi, 1.5 * np.pi))
+                self._ventralHistory = []
+
+        # curvature: dorsal−ventral imbalance → heading change
+        imbalance = netDorsal - netVentral
+        turn_rate = imbalance * 0.35
+        turn_rate += float(self._rng.normal(0, 0.03))
+        if not self._is_running:
+            turn_rate = -turn_rate
+        self.heading += turn_rate
+
+        speed = self.base_speed * float(np.clip(fwdDrive if self._is_running else bwdDrive * 0.6, 0.1, 1.0))
+
+        conc_now   = total_concentration(self.food_sources, self.position)
+        delta_conc = conc_now - self._prev_conc
         self.heading %= (2 * np.pi)
         direction = np.array([np.cos(self.heading), np.sin(self.heading)])
-        new_position = self.position + direction * speed
+        sign = -1.0 if not self._is_running else 1.0
+        new_position = self.position + direction * speed * sign
         hit_wall = False
         for dim in range(2):
             if new_position[dim] < 0:
@@ -211,7 +248,7 @@ class ChemotaxisEnvironment:
                 self.heading = self._reflect_heading(self.heading, dim)
                 hit_wall = True
         self.position = new_position
-        adapt_tau           = 0.05
+        adapt_tau           = 1.0 - np.exp(-1.0 / 20.0)
         self._adapted_conc  += adapt_tau * (conc_now - self._adapted_conc)
         new_conc   = total_concentration(self.food_sources, self.position)
         reward     = self.gradient_reward_scale * (new_conc - self._prev_conc)
@@ -230,6 +267,8 @@ class ChemotaxisEnvironment:
         self.episode.rewards.append(reward)
         self.episode.headings.append(self.heading)
         self.episode.concentrations.append(new_conc)
+        if omegaTurn:
+            self.episode.run_tumble_events.append(self._step_count)
         self.episode.steps_taken = self._step_count
         self.episode.success     = reached_food
         min_dist = min(
@@ -244,11 +283,11 @@ class ChemotaxisEnvironment:
             "distance":        min_dist,
             "concentration":   new_conc,
             "delta_conc":      delta_conc,
-            "tumble_prob":     tumble_prob,
             "is_running":      self._is_running,
+            "omega_turn":      omegaTurn,
             "hit_wall":        hit_wall,
-            "left_drive":      left_drive,
-            "right_drive":     right_drive,
+            "net_dorsal":      netDorsal,
+            "net_ventral":     netVentral,
             "curr_pos":        self.position,
         }
         return obs, reward, done, info
@@ -290,10 +329,10 @@ class ChemotaxisEnvironment:
         return spikes
 
     def _decode_motor(self, motor_spikes: np.ndarray) -> Tuple[float, float]:
-        """Average spike rate for left and right motor pools."""
-        left  = float(np.mean([motor_spikes[i] for i in self.leftMotors]))  if self.leftMotors  else 0.5
-        right = float(np.mean([motor_spikes[i] for i in self.rightMotors])) if self.rightMotors else 0.5
-        return left, right
+        """Replaced by inline DB/VB/DD/VD/AS/DA decoding in step(). Kept for API compatibility."""
+        netDorsal  = float(np.mean([motor_spikes[i] for i in self.dorsalFwd]))  if self.dorsalFwd  else 0.5
+        netVentral = float(np.mean([motor_spikes[i] for i in self.ventralFwd])) if self.ventralFwd else 0.5
+        return netDorsal, netVentral
 
     @staticmethod
     def _reflect_heading(heading: float, dim: int) -> float:
